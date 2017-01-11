@@ -32,6 +32,7 @@ with open('../../data/Advert/Annonce.json') as data_file:
 df = pd.read_json(data)
 # Suppression des lignes ou le prix n'est pas renseigne
 df = df[df['forecast_price'] != '']
+df = df[df['situation'] != 'a donner']
 
 
 # Variable a renseigner dans la requete
@@ -40,42 +41,65 @@ var_req = ['buy_place',
            'object_state',
            'quantite',
            'type_place',
+           'situation',
            'volume']
 
 
 def price_prediction(pu_req):
-    # Mise en forme de la requete et suppression des champs a valeur
-    # manquante
-    X_pred = pd.DataFrame(pu_req).T
-    X_pred.columns = var_req
-    X_pred = X_pred[X_pred != ''].T.dropna().T
+     # Si l'utilisateur ne met pas en situation "a donner":
+    if (pu_req[5] != 'a donner' or pu_req[5] == ''):
+        if pu_req[1] != '':
+            pu_req[1] = int(pu_req[1])
+        if pu_req[3] != '':
+            pu_req[3] = int(pu_req[3])
 
-    # Variable necessaire pour entrainer le modele
-    var_X_train = list(X_pred.columns)
+        # Mise en forme de la requete et suppression des champs a valeur
+        # manquante
+        X_pred = pd.DataFrame(pu_req).T
+        X_pred.columns = var_req
 
-    # Donnees pour entrainer le modele
-    X_train = df[var_X_train]
+        X_pred = X_pred[X_pred != ''].T.dropna().T
 
-    # Encodage des donnees en facteur numeriques
-    le = preprocessing.LabelEncoder()
+        # Variable necessaire pour entrainer le modele
+        var_X_train = list(X_pred.columns)
 
-    # Pour toutes les variables necessaire
-    for var in var_X_train:
-        # On assigne les strings a des integers
-        le.fit(X_train[var])
-        # On les transforme dans le X_train
-        X_train[var] = list(le.transform(X_train[var]))
-        # Et dans le X_pred
-        X_pred[var] = list(le.transform(X_pred[var]))
+        # Donnees pour entrainer le modele
+        X_train = df[var_X_train]
 
-    # Donnees d'entrainement a predire
-    Y_train = df['forecast_price']
-    # Conversion des donnees en numerique
-    Y_train = Y_train.convert_objects(convert_numeric=True)
+        # Encodage des donnees en facteur numeriques
+        le = preprocessing.LabelEncoder()
 
-    # Modele utilise : RandomForest
-    rf = RandomForestRegressor(n_estimators=1000)
-    # Entrainement du modele avec les donnees adequats
-    rf.fit(X_train, Y_train)
-    # Prediction
-    return rf.predict(X_pred).item()
+        # Pour toutes les variables necessaire
+        for var in var_X_train:
+            # On assigne les strings a des integers
+            le.fit(X_train[var])
+            # On les transforme dans le X_train
+            X_train[var] = list(le.transform(X_train[var]))
+            # Et dans le X_pred
+            X_pred[var] = list(le.transform(X_pred[var]))
+
+        # Donnees d'entrainement a predire
+        Y_train = df['forecast_price']
+        # Conversion des donnees en numerique
+        Y_train = Y_train.convert_objects(convert_numeric=True)
+
+        # Modele utilise : RandomForest
+        rf = RandomForestRegressor(n_estimators=1000)
+        # Entrainement du modele avec les donnees adequats
+        rf.fit(X_train, Y_train)
+        # Prediction
+        return rf.predict(X_pred).item()
+    else:
+        return 0
+
+
+u_req = ['artisan',
+         '',
+         'bon etat',
+         '1',
+         '',
+         '',
+         '']
+
+izi = price_prediction(u_req)
+
