@@ -11,11 +11,11 @@ def determine_object_to_recommend(id_user):
     one,two,three,four,five = recommendation_view(id_user)
 
     payload = {
-        'first_recommend': one,
-        'second_recommend': two,
-        'third_recommend' : three,
-        'fourth_recommend' : four,
-        'fifth_recommend' : five
+        'first_recommend': str(one),
+        'second_recommend': str(two),
+        'third_recommend' : str(three),
+        'fourth_recommend' : str(four),
+        'fifth_recommend' : str(five)
     }
     return jsonify(payload)
 

@@ -9,15 +9,22 @@ Created on Tue Jan 10 09:37:47 2017
 import pandas as pd
 import numpy as np
 from collections import Counter
+import json
 
 # Import des donnees
 df = pd.read_csv("../../data/Historique/historique100u.csv", sep=";")
+
+with open('../../data/Advert/Annonce.json') as data_file:
+    data = json.load(data_file)
+
+# Transformation des donnees en dataframe
+annonce = pd.read_json(data)
 
 
 # Calcul de la matrice des favoris
 
 nb_user = len(set(df['id_user']))
-nb_obj = len(set(df['id_annonce']))
+nb_obj = len(set(df['id_advert']))
 
 # Initialisation de matrice
 tab = np.eye(nb_user+1, nb_obj+1)
@@ -27,17 +34,17 @@ for i in range(1, nb_user+1):
     # Pour chaque objet
     for j in range(1, nb_obj+1):
         # Si l'user n'a pas vu l'objet
-        if len(df[(df['id_user'] == i) & (df['id_annonce'] == j)]) == 0:
+        if len(df[(df['id_user'] == i) & (df['id_advert'] == j)]) == 0:
             # Valeur dans tab = 0
             tab[i][j] = 0
         # Si il a vu l'annonce sans mettre en favoris
-        elif df[(df['id_user'] == i) & (df['id_annonce'] == j)][
+        elif df[(df['id_user'] == i) & (df['id_advert'] == j)][
             'favoris'
         ].item() == 0:
             # Valeur dans tab = 1
             tab[i][j] = 1
         # S'il a vu l'annonce et qu'il l'a mis en favoris
-        elif df[(df['id_user'] == i) & (df['id_annonce'] == j)][
+        elif df[(df['id_user'] == i) & (df['id_advert'] == j)][
             'favoris'
         ].item() == 1:
             # Valeur dans tab = 3
@@ -99,7 +106,16 @@ def recommendation_view(pid_user):
     ct = Counter(recommend_list)
     # On ressort ceux qui sont le plus recommende dans cette liste
     mc = ct.most_common()
-    top5_o = [str(mc[i][0]) for i in range(5)]
+    # On reformate les donnees au format souhaite
+    advert_to_recommend = [mc[i][0] for i in range(len(mc))]
+    advert_to_recommend = pd.DataFrame({'id_advert': advert_to_recommend})
+    # On va chercher l'information sur la disponibilite des objets
+    advert_to_recommend = pd.concat([advert_to_recommend, annonce],
+                                    axis=1, join='inner')
+    # On ne garde que ceux en ligne
+    advert_to_recommend_free = advert_to_recommend[
+        advert_to_recommend['advert_state'] == 'en ligne'
+    ]
 
     # On retourne la liste des 5 objets a recommender dans l'ordre
-    return top5_o
+    return list(advert_to_recommend_free['id_advert'].iloc[:, 0])[0:5]
